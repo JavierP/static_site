@@ -45,7 +45,7 @@ class ParentNode(HTMLNode):
     def to_html(self):
         if self.tag is None:
             raise ValueError()
-        
+
         if self.children is None:
             raise ValueError()
         r = ""
