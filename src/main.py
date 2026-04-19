@@ -1,12 +1,17 @@
 import os
+import sys
 import shutil
 from block_markdown import markdown_to_html_node
 
 
 def main():
-    prep_destination("static", "public")
-    copy_content("static", "public")
-    generate_pages_recursive("content", "template.html", "public")
+    if len(sys.argv) > 1:
+        basepath = sys.argv[1]
+    else:
+        basepath =  "/"
+    prep_destination("static", "docs")
+    copy_content("static", "docs")
+    generate_pages_recursive("content", "template.html", "docs", basepath)
 
 def prep_destination(source, destination):
     if not os.path.exists(source):
@@ -41,12 +46,11 @@ def extract_title(markdown):
     lines = markdown.split("\n")
     for line in lines:
         if line.startswith("# "):
-            print(line.strip("# "))
             return line[2:].strip()
     raise Exception("No h1 found")
 
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, base_path):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
     with open(from_path) as f:
         contents_from = f.read()
@@ -56,12 +60,14 @@ def generate_page(from_path, template_path, dest_path):
     title = extract_title(contents_from)
     contents_templ = contents_templ.replace("{{ Title }}", title)
     contents_templ = contents_templ.replace("{{ Content }}", html_string)
+    contents_templ = contents_templ.replace('href="/', 'href="'+ base_path)
+    contents_templ = contents_templ.replace('src="/', 'src="'+ base_path)
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
     with open(dest_path, "w") as f:
         f.write(contents_templ)
 
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, base_path):
     if not os.path.exists(dir_path_content):
         raise ValueError("Mssing content path")
     if not os.path.exists(template_path):
@@ -75,10 +81,10 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
         
         if os.path.isfile(join_path):
             name, ext = os.path.splitext(dest_path)
-            generate_page(join_path, template_path, f"{name}.html")
+            generate_page(join_path, template_path, f"{name}.html", base_path)
         else:
             os.makedirs(dest_path, exist_ok=True)
-            generate_pages_recursive(join_path, template_path, dest_path)
+            generate_pages_recursive(join_path, template_path, dest_path, base_path)
 
 
 if __name__ == "__main__":
